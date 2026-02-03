@@ -5,7 +5,6 @@ import json
 from datetime import datetime, timedelta
 
 
-# Load config
 def load_config() -> dict:
     """Loads configuration data to a dictionary from a local JSON file.
 
@@ -20,12 +19,12 @@ def load_config() -> dict:
         return json.load(f)
 
 
-# Bonfire API pull all currently open public projects
-def get_open_projects(api_key: str, time_delta_days=2) -> list:
+def get_open_projects(api_key: str, projects_url: str, time_delta_days=2) -> list:
     """Calls Bonfire API to get open public projects closing in > time_delta_days.
 
     Accepts:
         api_key (str): Bonfire API key
+        projects_url (str): URL of the projects endpoint
         time_delta_days (int): Number of days ahead to filter closing projects, default is 2
 
     Returns:
@@ -33,7 +32,7 @@ def get_open_projects(api_key: str, time_delta_days=2) -> list:
     """
     headers = {"Authorization": f"Bearer {api_key}"}
     response = requests.get(
-        "https://us-production-api-public.bonfirehub.com/v1/projects/all",
+        projects_url,
         headers=headers,
         verify=False,
     )
@@ -53,19 +52,19 @@ def get_open_projects(api_key: str, time_delta_days=2) -> list:
     return open_projects
 
 
-# Bonfire API pull ALL public projects
-def get_all_projects(api_key: str) -> list:
+def get_all_projects(api_key: str, projects_url: str) -> list:
     """Calls Bonfire API to get all public projects.
 
     Accepts:
         api_key (str): Bonfire API key
+        projects_url (str): URL of the projects endpoint
 
     Returns:
         list: List of project dictionaries
     """
     headers = {"Authorization": f"Bearer {api_key}"}
     response = requests.get(
-        "https://us-production-api-public.bonfirehub.com/v1/projects/all",
+        projects_url,
         headers=headers,
         verify=False,
     )
@@ -104,4 +103,5 @@ def save_to_excel(df: pd.DataFrame, output_path: Path, filename: str) -> Path:
     """
     output_file = output_path / filename
     df.to_excel(output_file, index=False)
+
     return output_file
