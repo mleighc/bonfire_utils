@@ -3,6 +3,9 @@ import requests
 from pathlib import Path
 import json
 from datetime import datetime, timedelta
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def load_config() -> dict:
@@ -84,7 +87,47 @@ def convert_to_df(projects: list, columns=None) -> pd.DataFrame:
     Returns:
         pd.DataFrame: DataFrame containing project data
     """
-    df = pd.DataFrame(projects)
+    df_list = []
+    for project in projects:
+        custom_fields = {
+            cf["customField"]["name"]: cf["value"]
+            for cf in project.get("customFieldValues", [])
+        }
+
+        item = {
+            "bonfire_id": project.get("id"),
+            "organization_id": project.get("organization")["id"],
+            "department_id": project.get("department")["id"],
+            "project_name": project.get("name"),
+            "reference_number": project.get("referenceNumber"),
+            "project_description": project.get("description"),
+            "type": project.get("type"),
+            "open_date": project.get("dateOpen"),
+            "date_closed": project.get("dateClosed"),
+            "date_evaluated": project.get("dateEvaluated"),
+            "visibility": project.get("visibility"),
+            "owner_name": (
+                project.get("owner")["name"] if project.get("owner") else None
+            ),
+            "owner_email": (
+                project.get("owner")["email"] if project.get("owner") else None
+            ),
+            "status": project.get("status"),
+            "contact_name": (
+                project.get("contact")["name"] if project.get("contact") else None
+            ),
+            "contact_email": (
+                project.get("contact")["email"] if project.get("contact") else None
+            ),
+            "contact_phone": (
+                project.get("contact")["phone"] if project.get("contact") else None
+            ),
+            "date_modified": project.get("dateModified"),
+            **custom_fields,
+        }
+        df_list.append(item)
+
+    df = pd.DataFrame(df_list)
     if columns:
         df = df[columns]
 
@@ -97,10 +140,12 @@ def save_to_excel(df: pd.DataFrame, output_path: Path, filename: str) -> Path:
     Accepts:
         df (pd.DataFrame): DataFrame to save
         output_path (Path): Path to save the Excel file
+        filename (str): Name of the Excel file
 
     Returns:
         Path: Path to the saved Excel file
     """
+    output_path = Path(output_path)  # convert if string
     output_file = output_path / filename
     df.to_excel(output_file, index=False)
 
