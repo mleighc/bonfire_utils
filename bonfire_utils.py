@@ -66,7 +66,7 @@ def get_all_projects(api_key: str, projects_url: str) -> list:
     response = requests.get(
         projects_url,
         headers=headers,
-        verify=False,
+        verify=False,  # no SSL verification for internal API calls
     )
     response.raise_for_status()
     all_projects = response.json()
