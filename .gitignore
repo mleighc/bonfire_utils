@@ -20,3 +20,7 @@ venv/
 *.csv
 *.json
 data/
+
+# Distribution / packaging
+dist/
+*.egg-info/
