@@ -1,0 +1,22 @@
+# Config
+config.json
+
+# Excel files
+*.xlsx
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env
+venv/
+
+# Data filesdata/
+*.csv
+*.json
+data/
