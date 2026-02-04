@@ -22,6 +22,22 @@ def load_config() -> dict:
         return json.load(f)
 
 
+def update_config(new_config: dict) -> None:
+    """Updates the local JSON configuration file with new data.
+
+    Accepts:
+        new_config (dict): New configuration data to write
+
+    Returns:
+        None
+    """
+    config_path = Path(__file__).parent / "config.json"
+    config = load_config()
+    config.update(new_config)
+    with open(config_path, "w") as f:
+        json.dump(config, f, indent=4)
+
+
 def get_open_projects(api_key: str, projects_url: str, time_delta_days=2) -> list:
     """Calls Bonfire API to get open public projects closing in > time_delta_days.
 
