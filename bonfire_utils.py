@@ -33,16 +33,28 @@ def get_open_projects(api_key: str, projects_url: str, time_delta_days=2) -> lis
     Returns:
         list: List of project dictionaries
     """
+    all_projects = []
+    page = 1
+    limit = 100
     headers = {"Authorization": f"Bearer {api_key}"}
-    response = requests.get(
-        projects_url,
-        headers=headers,
-        verify=False,
-    )
-    response.raise_for_status()
-    all_projects = response.json()
 
-    # Only open, public, closing in >2 days
+    while True:
+        url = f"{projects_url}?limit={limit}&page={page}"
+        response = requests.get(url, headers=headers, verify=False)
+        response.raise_for_status()
+        data = response.json()
+
+        if not data:
+            break
+
+        all_projects.extend(data)
+
+        if len(data) < limit:
+            break
+
+        page += 1
+
+    # Only open, public, closing in >time_delta_days
     open_projects = [
         project
         for project in all_projects
@@ -56,7 +68,7 @@ def get_open_projects(api_key: str, projects_url: str, time_delta_days=2) -> lis
 
 
 def get_all_projects(api_key: str, projects_url: str) -> list:
-    """Calls Bonfire API to get all public projects.
+    """Calls Bonfire API to get all public projects with automatic pagination.
 
     Accepts:
         api_key (str): Bonfire API key
@@ -65,14 +77,26 @@ def get_all_projects(api_key: str, projects_url: str) -> list:
     Returns:
         list: List of project dictionaries
     """
+    all_projects = []
+    page = 1
+    limit = 100
     headers = {"Authorization": f"Bearer {api_key}"}
-    response = requests.get(
-        projects_url,
-        headers=headers,
-        verify=False,  # no SSL verification for internal API calls
-    )
-    response.raise_for_status()
-    all_projects = response.json()
+
+    while True:
+        url = f"{projects_url}?limit={limit}&page={page}"
+        response = requests.get(url, headers=headers, verify=False)
+        response.raise_for_status()
+        data = response.json()
+
+        if not data:
+            break
+
+        all_projects.extend(data)
+
+        if len(data) < limit:
+            break
+
+        page += 1
 
     return all_projects
 
