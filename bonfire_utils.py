@@ -49,7 +49,7 @@ def parse_api_datetime(date_string: str) -> str:
         date_string (str): ISO format datetime string from API
 
     Returns:
-        str: Datetime string in Eastern time (ISO format)
+        str: Human-readable datetime string in Eastern time (12-hour format)
     """
     if not date_string:
         return None  # type: ignore
@@ -65,7 +65,8 @@ def parse_api_datetime(date_string: str) -> str:
         else:
             # If naive, assume UTC
             dt_eastern = dt.replace(tzinfo=ZoneInfo("UTC")).astimezone(EASTERN)
-        return dt_eastern.isoformat()
+        # Format as human-readable 12-hour format
+        return dt_eastern.strftime("%B %d, %Y %I:%M %p %Z")
     except ValueError:
         return date_string  # Return original if parsing fails
 
