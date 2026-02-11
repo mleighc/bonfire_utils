@@ -66,7 +66,7 @@ def parse_api_datetime(date_string: str) -> str:
             # If naive, assume UTC
             dt_eastern = dt.replace(tzinfo=ZoneInfo("UTC")).astimezone(EASTERN)
         # Format as human-readable 12-hour format
-        return dt_eastern.strftime("%B %d, %Y %I:%M %p %Z")
+        return dt_eastern.strftime("%b %d, %Y %I:%M %p %Z")
     except ValueError:
         return date_string  # Return original if parsing fails
 
