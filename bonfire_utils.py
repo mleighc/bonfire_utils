@@ -3,9 +3,13 @@ import requests
 from pathlib import Path
 import json
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Timezone constant
+EASTERN = ZoneInfo("America/New_York")
 
 
 def load_config() -> dict:
@@ -36,6 +40,33 @@ def update_config(new_config: dict) -> None:
     config.update(new_config)
     with open(config_path, "w") as f:
         json.dump(config, f, indent=4)
+
+
+def parse_api_datetime(date_string: str) -> datetime:
+    """Parses a datetime string from the API and converts to Eastern time.
+
+    Accepts:
+        date_string (str): ISO format datetime string from API
+
+    Returns:
+        datetime: Timezone-aware datetime in Eastern time
+    """
+    if not date_string:
+        return None  # type: ignore
+
+    # Try parsing with timezone info (e.g., 2025-02-15T17:00:00Z or 2025-02-15T17:00:00+00:00)
+    try:
+        # Handle 'Z' suffix (UTC)
+        if date_string.endswith("Z"):
+            date_string = date_string[:-1] + "+00:00"
+        dt = datetime.fromisoformat(date_string)
+        # If it has timezone info, convert to Eastern
+        if dt.tzinfo is not None:
+            return dt.astimezone(EASTERN)
+        # If naive, assume it's already Eastern (adjust if Bonfire sends UTC)
+        return dt.replace(tzinfo=EASTERN)
+    except ValueError:
+        return None  # type: ignore
 
 
 def get_open_projects(api_key: str, projects_url: str, time_delta_days=2) -> list:
@@ -70,15 +101,20 @@ def get_open_projects(api_key: str, projects_url: str, time_delta_days=2) -> lis
 
         page += 1
 
+    # Calculate cutoff in Eastern time
+    cutoff = datetime.now(EASTERN) + timedelta(days=time_delta_days)
+
     # Only open, public, closing in >time_delta_days
-    open_projects = [
-        project
-        for project in all_projects
-        if project["status"].lower() == "open"
-        and project["dateClosed"]
-        > (datetime.now() + timedelta(days=time_delta_days)).isoformat()
-        and project["visibility"].lower() == "public"
-    ]
+    open_projects = []
+    for project in all_projects:
+        if project["status"].lower() != "open":
+            continue
+        if project["visibility"].lower() != "public":
+            continue
+
+        close_date = parse_api_datetime(project["dateClosed"])
+        if close_date and close_date > cutoff:
+            open_projects.append(project)
 
     return open_projects
 
