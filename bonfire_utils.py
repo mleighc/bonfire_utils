@@ -42,31 +42,32 @@ def update_config(new_config: dict) -> None:
         json.dump(config, f, indent=4)
 
 
-def parse_api_datetime(date_string: str) -> datetime:
+def parse_api_datetime(date_string: str) -> str:
     """Parses a datetime string from the API and converts to Eastern time.
 
     Accepts:
         date_string (str): ISO format datetime string from API
 
     Returns:
-        datetime: Timezone-aware datetime in Eastern time
+        str: Datetime string in Eastern time (ISO format)
     """
     if not date_string:
         return None  # type: ignore
 
-    # Try parsing with timezone info (e.g., 2025-02-15T17:00:00Z or 2025-02-15T17:00:00+00:00)
     try:
         # Handle 'Z' suffix (UTC)
         if date_string.endswith("Z"):
             date_string = date_string[:-1] + "+00:00"
         dt = datetime.fromisoformat(date_string)
-        # If it has timezone info, convert to Eastern
+        # Convert to Eastern
         if dt.tzinfo is not None:
-            return dt.astimezone(EASTERN)
-        # If naive, assume it's already Eastern (adjust if Bonfire sends UTC)
-        return dt.replace(tzinfo=EASTERN)
+            dt_eastern = dt.astimezone(EASTERN)
+        else:
+            # If naive, assume UTC
+            dt_eastern = dt.replace(tzinfo=ZoneInfo("UTC")).astimezone(EASTERN)
+        return dt_eastern.isoformat()
     except ValueError:
-        return None  # type: ignore
+        return date_string  # Return original if parsing fails
 
 
 def get_open_projects(api_key: str, projects_url: str, time_delta_days=2) -> list:
@@ -112,9 +113,15 @@ def get_open_projects(api_key: str, projects_url: str, time_delta_days=2) -> lis
         if project["visibility"].lower() != "public":
             continue
 
-        close_date = parse_api_datetime(project["dateClosed"])
-        if close_date and close_date > cutoff:
-            open_projects.append(project)
+        date_closed = project.get("dateClosed")
+        if date_closed:
+            if date_closed.endswith("Z"):
+                date_closed = date_closed[:-1] + "+00:00"
+            close_date = datetime.fromisoformat(date_closed)
+            if close_date.tzinfo:
+                close_date = close_date.astimezone(EASTERN)
+            if close_date > cutoff:
+                open_projects.append(project)
 
     return open_projects
 
@@ -178,9 +185,9 @@ def convert_to_df(projects: list, columns=None) -> pd.DataFrame:
             "reference_number": project.get("referenceNumber"),
             "project_description": project.get("description"),
             "type": project.get("type"),
-            "open_date": project.get("dateOpen"),
-            "date_closed": project.get("dateClosed"),
-            "date_evaluated": project.get("dateEvaluated"),
+            "open_date": parse_api_datetime(project.get("dateOpen")),
+            "date_closed": parse_api_datetime(project.get("dateClosed")),
+            "date_evaluated": parse_api_datetime(project.get("dateEvaluated")),
             "visibility": project.get("visibility"),
             "owner_name": (
                 project.get("owner")["name"] if project.get("owner") else None
@@ -198,7 +205,7 @@ def convert_to_df(projects: list, columns=None) -> pd.DataFrame:
             "contact_phone": (
                 project.get("contact")["phone"] if project.get("contact") else None
             ),
-            "date_modified": project.get("dateModified"),
+            "date_modified": parse_api_datetime(project.get("dateModified")),
             **custom_fields,
         }
         df_list.append(item)
