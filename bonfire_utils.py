@@ -218,6 +218,24 @@ def convert_to_df(projects: list, columns=None) -> pd.DataFrame:
     return df
 
 
+def get_commodities(api_key: str, base_url: str, project_id: str) -> list:
+    """
+    Calls Bonfire API to get commodities for a specific project.
+
+    Accepts:
+        api_key (str): Bonfire API key
+        base_url (str): Base URL of the Bonfire API
+        project_id (str): ID of the project to get commodities for
+    Returns:
+        list: List of commodity dictionaries
+    """
+    headers = {"Authorization": f"Bearer {api_key}"}
+    url = f"{base_url}/v1/projects/{project_id}/commodityCodes"
+    response = requests.get(url, headers=headers, verify=False)
+    response.raise_for_status()
+    return response.json()
+
+
 def save_to_excel(df: pd.DataFrame, output_path: Path, filename: str) -> Path:
     """Saves a pandas DataFrame to an Excel file.
 
