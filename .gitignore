@@ -24,3 +24,6 @@ data/
 # Distribution / packaging
 dist/
 *.egg-info/
+
+# test files
+test.py
